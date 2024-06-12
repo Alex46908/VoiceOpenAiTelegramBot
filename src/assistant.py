@@ -1,8 +1,11 @@
 import time
+from config import Settings
+
+settings = Settings()
 
 def init(open_ai_client):
     assistant = open_ai_client.beta.assistants.create(
-        model="gpt-4o"
+        model=settings.assistant.model
     )
     thread = open_ai_client.beta.threads.create()
 
@@ -21,7 +24,7 @@ def get_answer(open_ai_client, assistant_id, thread_id, message_id):
     run = open_ai_client.beta.threads.runs.create_and_poll(
         thread_id=thread_id,
         assistant_id=assistant_id,
-        instructions="Please speak with user"
+        instructions=settings.assistant.instructions
     )
     while run.status == "queued" or run.status == "in_progress":
         run = open_ai_client.beta.threads.runs.retrieve(
