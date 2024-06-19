@@ -1,9 +1,10 @@
 import uuid
 import os
+import asyncio
 
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler, filters
-from openai import OpenAI
+from aiogram import Bot, Dispatcher, html, F, types
+from aiogram.types import Message
+from openai import AsyncOpenAI
 
 from config import Settings
 from stt import stt
@@ -14,26 +15,37 @@ settings = Settings()
 bot_token = settings.bot_token
 open_ai_token = settings.open_ai_token
 
-app = ApplicationBuilder().token(bot_token).build()
-open_ai_client = OpenAI(api_key=open_ai_token)
-assistant, thread = Assistant.init(open_ai_client)
+bot = Bot(token=bot_token)
+dp = Dispatcher()
+open_ai_client = AsyncOpenAI(api_key=open_ai_token)
+
+async def init_assistant():
+    assistant = await Assistant.init(open_ai_client)
+    Settings.assistant_id = assistant.id
+
+asyncio.run(init_assistant())
 
 os.makedirs('./temp', exist_ok=True)
 
-async def get_voice(update: Update, context: CallbackContext) -> None:
-    new_file = await context.bot.get_file(update.message.voice.file_id)
-    file_name = "./temp/temp" + str(uuid.uuid4()) +".mp3"
-    await new_file.download_to_drive(file_name)
+@dp.message(F.voice)
+async def get_voice(message: Message) -> None:
+    stream = await bot.download(message.voice)
+    file_name = "./temp/temp" + str(uuid.uuid4()) + ".mp3"
+    with open(file_name, "wb") as f:
+        f.write(stream.getbuffer())
+        f.close()
     text = await stt(open_ai_client, file_name)
     os.remove(file_name)
 
-    message = Assistant.send_question(open_ai_client, thread.id, text)
-    answer_text = Assistant.get_answer(open_ai_client, assistant.id, thread.id, message.id)
+    sendMessage, thread = await Assistant.send_question(open_ai_client, text)
+    answer_text = await Assistant.get_answer(open_ai_client, Settings.assistant_id, thread.id, sendMessage.id)
 
-    voice_message_path = tts(open_ai_client, answer_text)
-    await update.message.reply_voice(voice_message_path)
+    voice_message_path = await tts(open_ai_client, answer_text)
+    voice_message = types.FSInputFile(voice_message_path)
+    await message.answer_voice(voice_message)
     os.remove(voice_message_path)
 
-app.add_handler(MessageHandler(filters.VOICE, get_voice))
+async def main():
+    await dp.start_polling(bot)
 
-app.run_polling()
+asyncio.run(main())
