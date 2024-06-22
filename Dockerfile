@@ -2,10 +2,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY src/ .
+COPY src/ ./src
 
 COPY requirements.txt .
+COPY alembic.ini .
 
 RUN pip install -r requirements.txt
 
-CMD ["python", "./main.py"]
+CMD ["alembic upgrade head"]
+
+CMD ["python", "./src/main.py"]

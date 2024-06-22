@@ -9,5 +9,6 @@ async def stt(open_ai_client, file_name):
         file=audio_file
     )
     text = transcription.text
+    audio_file.close()
 
     return text

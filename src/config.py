@@ -11,12 +11,23 @@ class sttSettings(BaseSettings):
 # Assistant Settings
 class assistantSettings(BaseSettings):
     model: str = "gpt-4o"
-    instructions: str = "Speak with user"
+    instructions: str = "Узнай мои жизненные цености"
+    assistant_id: str = Field("", env="ASSISTANT_ID")
+    error_message: str = "Я вас не понял. Давайте попробуем еще раз!"
 
 # Text-To-Speech Settings
 class ttsSettings(BaseSettings):
     model: str = "tts-1"
     voice: str = "alloy"
+
+
+# Postgres Settings
+class postgresSettings(BaseSettings):
+    postgres_user: str = Field("user", env="POSTGRES_USER")
+    postgres_password: str = Field("password", env="POSTGRES_PASSWORD")
+    postgres_host: str = Field("host", env="POSTGRES_HOST")
+    postgres_port: str = Field("port", env="POSTGRES_PORT")
+    postgres_db: str = Field("db", env="POSTGRES_DB")
 
 class Settings(BaseSettings):
     open_ai_token: str = Field("", env="OPEN_AI_TOKEN")
@@ -24,3 +35,4 @@ class Settings(BaseSettings):
     tts: BaseSettings  = ttsSettings()
     assistant: BaseSettings = assistantSettings()
     stt: BaseSettings = sttSettings()
+    postgres: BaseSettings = postgresSettings()
