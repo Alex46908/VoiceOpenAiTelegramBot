@@ -1,4 +1,3 @@
-import json
 from validation.value_is_correct import value_is_correct
 
 async def save_value(open_ai_client, db_manager, user_telegram_id, tool_id, value):

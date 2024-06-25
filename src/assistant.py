@@ -20,7 +20,7 @@ class Assistant:
 
         return message, thread
 
-    async def get_answer(self, thread_id, message_id, user_telegram_id):
+    async def get_answer(self, thread_id, message_id, user_telegram_id, statistic_controller):
         run = await self.open_ai_client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
             assistant_id=self.assistant_id,
@@ -41,10 +41,9 @@ class Assistant:
 
                     if tool_output:
                         tool_outputs.append(tool_output)
+                        statistic_controller.add_event("Успешно сохранена ценность пользователя", str(user_telegram_id))
                     else:
                         return settings.assistant.error_message
-
-
 
             if tool_outputs:
                 try:

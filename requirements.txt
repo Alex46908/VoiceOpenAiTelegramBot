@@ -6,3 +6,4 @@ aiogram~=3.8
 alembic
 sqlalchemy
 asyncpg
+amplitude-analytics

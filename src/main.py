@@ -12,15 +12,19 @@ from stt import stt
 from tts import tts
 from assistant import Assistant
 from init_assistant import init_assistant
+from get_emotion_in_image import get_emotion_in_image
+from statistic.threadAmplitudeController import ThreadAmplitudeController
 
 settings = Settings()
 bot_token = settings.bot_token
 open_ai_token = settings.open_ai_token
+amplitude_api_key = settings.amplitude.amplitude_api_key
 postgres = settings.postgres
 
 bot = Bot(token=bot_token)
 dp = Dispatcher()
 open_ai_client = AsyncOpenAI(api_key=open_ai_token)
+thread_amplitude_controller = ThreadAmplitudeController(amplitude_api_key)
 
 async def init_new_assistant():
     print("Assistant ID not set")
@@ -43,6 +47,21 @@ assistant = Assistant(open_ai_client, db_manager)
 
 os.makedirs('./temp', exist_ok=True)
 
+@dp.message(F.photo)
+async def get_media(message: types.Message):
+    file_id = message.photo[0].file_id
+    file = await bot.get_file(file_id)
+
+    url = "https://api.telegram.org/file/bot" + bot_token + "/" + file.file_path
+
+    emotion = await get_emotion_in_image(open_ai_client, url)
+
+    voice_message_path = await tts(open_ai_client, emotion)
+    voice_message = types.FSInputFile(voice_message_path)
+    await message.answer_voice(voice_message)
+    os.remove(voice_message_path)
+    thread_amplitude_controller.add_event("Определение эмоции по фото", str(message.from_user.id))
+
 @dp.message(F.voice)
 async def get_voice(message: Message) -> None:
     stream = await bot.download(message.voice)
@@ -54,8 +73,7 @@ async def get_voice(message: Message) -> None:
     os.remove(file_name)
 
     sendMessage, thread = await assistant.send_question(text)
-    answer_text = await assistant.get_answer(thread.id, sendMessage.id, message.from_user.id)
-
+    answer_text = await assistant.get_answer(thread.id, sendMessage.id, message.from_user.id, thread_amplitude_controller)
     voice_message_path = await tts(open_ai_client, answer_text)
     voice_message = types.FSInputFile(voice_message_path)
     await message.answer_voice(voice_message)

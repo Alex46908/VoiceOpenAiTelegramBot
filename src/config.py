@@ -15,6 +15,10 @@ class assistantSettings(BaseSettings):
     assistant_id: str = Field("", env="ASSISTANT_ID")
     error_message: str = "Я вас не понял. Давайте попробуем еще раз!"
 
+# Amplitude Settings
+class anplitudeSettings(BaseSettings):
+    amplitude_api_key: str = Field("", env="ASSISTANT_API_KEY")
+
 # Text-To-Speech Settings
 class ttsSettings(BaseSettings):
     model: str = "tts-1"
@@ -36,3 +40,4 @@ class Settings(BaseSettings):
     assistant: BaseSettings = assistantSettings()
     stt: BaseSettings = sttSettings()
     postgres: BaseSettings = postgresSettings()
+    amplitude: BaseSettings = anplitudeSettings()
