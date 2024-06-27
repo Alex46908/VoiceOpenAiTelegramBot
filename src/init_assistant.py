@@ -1,11 +1,13 @@
 from config import Settings
 
 settings = Settings()
-
 async def init_assistant(open_ai_client):
     assistant = await open_ai_client.beta.assistants.create(
         model=settings.assistant.model,
         tools=[
+            {
+                "type": "file_search"
+            },
             {
                 "type": "function",
                 "function": {
@@ -24,6 +26,7 @@ async def init_assistant(open_ai_client):
                 }
             }
         ])
+
     print("Assistant created successfully!")
     print("Please, add to .env:")
     print("ASSISTANT_ID=" + assistant.id)

@@ -48,8 +48,8 @@ ASSISTANT_ID=...
 
 ## Build
 ````
-docker pull python:3.12-slim
-docker build .
+Add postgres user and password in docker-compose.yaml (line 31, 32)
+docker-compose build
 ````
 
 ****
@@ -64,8 +64,20 @@ class sttSettings(BaseSettings):
 # Assistant Settings
 class assistantSettings(BaseSettings):
     model: str = "gpt-4o"
-    instructions: str = "Узнай мои жизненные цености"
-    error_message: str = "Я вас не понял. Давайте попробуем еще раз!"
+    vector_storage_id: str = Field("", env="VECTOR_STORAGE_ID")
+    instructions: str = "Узнай мои жизненные цености."
+    assistant_id: str = Field("", env="ASSISTANT_ID")
+    error_message: str = self"Я вас не понял. Давайте попробуем еще раз!"
+
+# Redis Settings
+class redisSettings(BaseSettings):
+    redis_host: str = Field("", env="REDIS_HOST")
+    redis_port: int = Field("", env="REDIS_PORT")
+    redis_db: int = Field("", env="REDIS_DB")
+
+# Amplitude Settings
+class anplitudeSettings(BaseSettings):
+    amplitude_api_key: str = Field("", env="ASSISTANT_API_KEY")
 
 # Text-To-Speech Settings
 class ttsSettings(BaseSettings):

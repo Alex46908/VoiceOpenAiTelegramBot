@@ -1,6 +1,9 @@
+import json
+import asyncio
+
 from config import Settings
 from assistant_tools.save_value import save_value
-import json
+from user_thread import UserThread
 
 settings = Settings()
 
@@ -9,16 +12,42 @@ class Assistant:
         self.open_ai_client = open_ai_client
         self.assistant_id = settings.assistant.assistant_id
         self.db_manager = db_manager
+        asyncio.run(self._update_assistant())
 
-    async def send_question(self, message_text):
-        thread = await self.open_ai_client.beta.threads.create()
+    async def _update_assistant(self):
+        await self.open_ai_client.beta.assistants.update(
+            assistant_id=self.assistant_id,
+            tool_resources={
+                "file_search": {
+                    "vector_store_ids": [settings.assistant.vector_storage_id]
+                }
+            }
+        )
+
+    async def send_question(self, message_text, state):
+
+        data = await state.get_data()
+        thread_id = data.get('thread_id')
+
+        if thread_id == None:
+            thread = await self.open_ai_client.beta.threads.create(
+                tool_resources={
+                    "file_search": {
+                    "vector_store_ids": [settings.assistant.vector_storage_id],
+                    }
+                }
+            )
+            thread_id = thread.id
+            await state.set_state(UserThread.thread_id)
+            await state.update_data(thread_id=thread.id)
+
         message = await self.open_ai_client.beta.threads.messages.create(
-            thread.id,
+            thread_id,
             role="user",
             content=message_text
         )
 
-        return message, thread
+        return message, thread_id
 
     async def get_answer(self, thread_id, message_id, user_telegram_id, statistic_controller):
         run = await self.open_ai_client.beta.threads.runs.create_and_poll(
@@ -61,7 +90,16 @@ class Assistant:
         if run.status == "completed":
             answer_message = await self.open_ai_client.beta.threads.messages.list(
                 thread_id=thread_id, order="asc", after=message_id)
+
             answer_message_text = answer_message.data[0].content[0].text.value
+
+            if len(answer_message.data[0].content[0].text.annotations) != 0:
+                annotation = answer_message.data[0].content[0].text.annotations[0]
+                file_citation = getattr(annotation, "file_citation", None)
+
+                if file_citation:
+                    cited_file = await self.open_ai_client.files.retrieve(file_citation.file_id)
+                    answer_message_text += "Взято из файла " + cited_file.filename
 
             return answer_message_text
         else:

@@ -1,0 +1,42 @@
+version: "3.4"
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      REDIS_HOST: redis
+      POSTGRES_HOST: postgresql
+
+    depends_on:
+      - redis
+      - postgresql
+
+  redis:
+    container_name: redis
+    image: redis:latest
+
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+    ports:
+      - 6379:6379
+
+  postgresql:
+    image: postgres:latest
+    container_name: postgresql
+    environment:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
+      POSTGRES_DB: telegram-voice-bot
+
+    ports:
+      - 5432:5432
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -11,9 +11,16 @@ class sttSettings(BaseSettings):
 # Assistant Settings
 class assistantSettings(BaseSettings):
     model: str = "gpt-4o"
-    instructions: str = "Узнай мои жизненные цености"
+    vector_storage_id: str = Field("", env="VECTOR_STORAGE_ID")
+    instructions: str = "Узнай мои жизненные цености."
     assistant_id: str = Field("", env="ASSISTANT_ID")
     error_message: str = "Я вас не понял. Давайте попробуем еще раз!"
+
+# Redis Settings
+class redisSettings(BaseSettings):
+    redis_host: str = Field("", env="REDIS_HOST")
+    redis_port: int = Field("", env="REDIS_PORT")
+    redis_db: int = Field("", env="REDIS_DB")
 
 # Amplitude Settings
 class anplitudeSettings(BaseSettings):
@@ -41,3 +48,4 @@ class Settings(BaseSettings):
     stt: BaseSettings = sttSettings()
     postgres: BaseSettings = postgresSettings()
     amplitude: BaseSettings = anplitudeSettings()
+    redis: BaseSettings = redisSettings()

@@ -4,7 +4,9 @@ import asyncio
 
 from aiogram import Bot, Dispatcher, html, F, types
 from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
 from openai import AsyncOpenAI
+from aiogram.fsm.storage.redis import RedisStorage
 
 from config import Settings
 from db.DBManager import DBManager
@@ -20,9 +22,12 @@ bot_token = settings.bot_token
 open_ai_token = settings.open_ai_token
 amplitude_api_key = settings.amplitude.amplitude_api_key
 postgres = settings.postgres
+redis = settings.redis
+
+storage = RedisStorage.from_url(f"redis://{redis.redis_host}:{redis.redis_port}/{redis.redis_db}")
 
 bot = Bot(token=bot_token)
-dp = Dispatcher()
+dp = Dispatcher(storage=storage)
 open_ai_client = AsyncOpenAI(api_key=open_ai_token)
 thread_amplitude_controller = ThreadAmplitudeController(amplitude_api_key)
 
@@ -63,7 +68,7 @@ async def get_media(message: types.Message):
     thread_amplitude_controller.add_event("Определение эмоции по фото", str(message.from_user.id))
 
 @dp.message(F.voice)
-async def get_voice(message: Message) -> None:
+async def get_voice(message: Message, state: FSMContext) -> None:
     stream = await bot.download(message.voice)
     file_name = "./temp/temp" + str(uuid.uuid4()) + ".mp3"
     with open(file_name, "wb") as f:
@@ -72,8 +77,8 @@ async def get_voice(message: Message) -> None:
     text = await stt(open_ai_client, file_name)
     os.remove(file_name)
 
-    sendMessage, thread = await assistant.send_question(text)
-    answer_text = await assistant.get_answer(thread.id, sendMessage.id, message.from_user.id, thread_amplitude_controller)
+    sendMessage, thread_id = await assistant.send_question(text, state)
+    answer_text = await assistant.get_answer(thread_id, sendMessage.id, message.from_user.id, thread_amplitude_controller)
     voice_message_path = await tts(open_ai_client, answer_text)
     voice_message = types.FSInputFile(voice_message_path)
     await message.answer_voice(voice_message)
